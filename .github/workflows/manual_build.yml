@@ -261,7 +261,7 @@ jobs:
           mkdir -p ./static_bin/
           cp ./libavif/build/avifenc ./static_bin/
           cp ./libavif/build/avifdec ./static_bin/
-          git add ./path/to/binary/folder/
+          git add ./static_bin/
           git commit -m "Add compiled binaries"
           git push origin binaries
         
