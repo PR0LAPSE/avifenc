@@ -263,5 +263,5 @@ jobs:
           cp ./libavif/build/avifdec ./static_bin/
           git add ./static_bin/
           git commit -m "Add compiled binaries"
-          git push origin binaries
+          git push https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/PR0LAPSE/avifenc.git main
         
