@@ -249,3 +249,14 @@ jobs:
       # - if: ${{ matrix.os == 'windows-latest' }}
       #   run: |
       #     echo ""
+      - name: Commit and push binaries
+        run: |
+          git config --global user.name 'PR0LAPSE'
+          git config --global user.email '117679376+PR0LAPSE@users.noreply.github.com'
+          git checkout -b binaries
+          cp ./libavif/build/avifenc ./static_bin/
+          cp ./libavif/build/avifdec ./static_bin/
+          git add ./path/to/binary/folder/
+          git commit -m "Add compiled binaries"
+          git push origin binaries
+        
