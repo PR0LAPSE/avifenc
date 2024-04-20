@@ -54,4 +54,4 @@ jobs:
         git push https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/PR0LAPSE/avifenc.git main
       env:
         PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      working-directory: /home/runner/work/avifenc/avifenc
+      working-directory: ${{ github.workspace }}
