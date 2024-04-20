@@ -1,4 +1,4 @@
-name: Run build with musl
+name: Run build
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install -y build-essential cmake make ninja-build nasm meson libz-dev libyuv-dev libpng-dev libjpeg-dev musl-tools
-
+          sudo ln -s /bin/g++ /bin/musl-g++
       - name: Clone libavif repo
         run: |
           git clone --depth 1 https://github.com/AOMediaCodec/libavif.git
