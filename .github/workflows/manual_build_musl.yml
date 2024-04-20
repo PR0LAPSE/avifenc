@@ -41,10 +41,10 @@ jobs:
       run: |
         git config --global user.name 'PR0LAPSE'
         git config --global user.email '117679376+PR0LAPSE@users.noreply.github.com'
-        mkdir -p ./static_bin/
-        cp ./libavif/build/avifenc ./static_bin/
-        cp ./libavif/build/avifdec ./static_bin/
-        git add ./static_bin/
+        mkdir -p static_bin/
+        cp libavif/build/avifenc static_bin/
+        cp libavif/build/avifdec static_bin/
+        git add static_bin/
         git commit -m "Add compiled binaries" || echo "No changes to commit"
         git push https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/PR0LAPSE/avifenc.git main
       env:
