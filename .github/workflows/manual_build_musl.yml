@@ -1,0 +1,172 @@
+name: Run build
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_version:
+        description: 'Select OS'
+        required: true
+        default: '["ubuntu-latest"]'
+        type: choice
+        options:
+          - '["ubuntu-latest"]'
+
+jobs:
+  test:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os_version) }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
+      - name: Linux - Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt update -y
+          sudo apt install -y build-essential cmake make ninja-build nasm meson libz-dev libyuv-dev libpng-dev libjpeg-dev musl-tools
+
+      - name: Clone libavif repo
+        run: |
+          git clone --depth 1 https://github.com/AOMediaCodec/libavif.git
+          ls -la
+
+
+      - name: Restore cached libyuv
+        id: cache-libyuv-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            libavif/ext/libyuv
+          key: ${{ runner.os }}-libs-libyuv
+
+      - name: Build libyuv
+        if: steps.cache-libyuv-restore.outputs.cache-hit != 'true'
+        working-directory: ./libavif/ext/
+        run: |
+          ./libyuv.cmd
+
+      - name: Save libyuv to cache
+        if: steps.cache-libyuv-restore.outputs.cache-hit != 'true'
+        id: cache-libyuv-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            libavif/ext/libyuv
+          key: ${{ steps.cache-libyuv-restore.outputs.cache-primary-key }}
+
+
+      - name: Restore cached libsharpyuv
+        id: cache-libsharpyuv-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            libavif/ext/libwebp
+          key: ${{ runner.os }}-libs-libsharpyuv
+
+      - name: Build libsharpyuv
+        if: steps.cache-libsharpyuv-restore.outputs.cache-hit != 'true'
+        working-directory: ./libavif/ext/
+        run: |
+          ./libsharpyuv.cmd
+
+      - name: Save libsharpyuv to cache
+        if: steps.cache-libsharpyuv-restore.outputs.cache-hit != 'true'
+        id: cache-libsharpyuv-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            libavif/ext/libwebp
+          key: ${{ steps.cache-libsharpyuv-restore.outputs.cache-primary-key }}
+
+
+      - name: Restore cached aom
+        id: cache-aom-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            libavif/ext/aom
+          key: ${{ runner.os }}-libs-aom
+
+      - name: Build aom
+        if: steps.cache-aom-restore.outputs.cache-hit != 'true'
+        working-directory: ./libavif/ext/
+        run: |
+          ./aom.cmd
+
+      - name: Save aom to cache
+        if: steps.cache-aom-restore.outputs.cache-hit != 'true'
+        id: cache-aom-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            libavif/ext/aom
+          key: ${{ steps.cache-aom-restore.outputs.cache-primary-key }}
+
+
+      - name: Restore cached dav1d
+        id: cache-dav1d-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            libavif/ext/dav1d
+          key: ${{ runner.os }}-libs-dav1d
+
+      - name: Build dav1d
+        if: steps.cache-dav1d-restore.outputs.cache-hit != 'true'
+        working-directory: ./libavif/ext/
+        run: |
+          ./dav1d.cmd
+
+      - name: Save dav1d to cache
+        if: steps.cache-dav1d-restore.outputs.cache-hit != 'true'
+        id: cache-dav1d-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            libavif/ext/dav1d
+          key: ${{ steps.cache-dav1d-restore.outputs.cache-primary-key }}
+
+
+      - name: Build libavif binaries
+        run: |
+          cd ./libavif/
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DAVIF_CODEC_AOM=ON -DAVIF_LOCAL_AOM=ON -DAVIF_CODEC_AOM_DECODE=ON -DAVIF_CODEC_AOM_ENCODE=ON -DAVIF_CODEC_DAV1D=ON -DAVIF_LOCAL_DAV1D=ON -DAVIF_LOCAL_LIBYUV=ON -DAVIF_BUILD_APPS=ON -DCMAKE_C_COMPILER=musl-gcc -DCMAKE_CXX_COMPILER=musl-g++ ..
+          ninja
+          ls -la
+
+      - name: Test avifenc
+        run: |
+          ./libavif/build/avifenc --version
+
+      - name: Test avifdec
+        run: |
+          ./libavif/build/avifdec --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-avif-binaries
+          path: |
+            ./libavif/build/avifenc
+            ./libavif/build/avifdec
+
+      - name: Commit and push binaries
+        run: |
+          git config --global user.name 'PR0LAPSE'
+          git config --global user.email '117679376+PR0LAPSE@users.noreply.github.com'
+          mkdir -p ./static_bin/
+          cp ./libavif/build/avifenc ./static_bin/
+          cp ./libavif/build/avifdec ./static_bin/
+          git add ./static_bin/
+          git commit -m "Add compiled binaries"
+          git push https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/PR0LAPSE/avifenc.git main
+        
